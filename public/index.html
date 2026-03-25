@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Print Shop</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --accent: #0f3460;
+    --highlight: #e94560;
+    --text: #eee;
+    --text2: #aaa;
+    --green: #00c853;
+    --yellow: #ffd600;
+    --orange: #ff9100;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; margin-bottom: 24px; border-bottom: 1px solid #333;
+  }
+  header h1 { font-size: 1.5rem; }
+  header h1 span { color: var(--highlight); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .header-right .user-info { font-size: 0.85rem; color: var(--text2); }
+  .header-right .user-info strong { color: var(--text); }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+  .tab {
+    padding: 10px 20px; background: var(--surface); border: none; color: var(--text2);
+    border-radius: var(--radius); cursor: pointer; font-size: 0.9rem; transition: 0.2s;
+  }
+  .tab:hover { background: var(--surface2); color: var(--text); }
+  .tab.active { background: var(--highlight); color: #fff; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 24px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--highlight); }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 0.8rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea {
+    background: var(--bg); border: 1px solid #333; color: var(--text);
+    padding: 10px 12px; border-radius: 6px; font-size: 0.95rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--highlight); }
+  textarea { resize: vertical; min-height: 60px; }
+  select { cursor: pointer; }
+
+  .cost-preview {
+    background: var(--surface2); border-radius: var(--radius);
+    padding: 16px; margin-top: 16px;
+  }
+  .cost-line {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    font-size: 0.9rem; color: var(--text2);
+  }
+  .cost-line.total {
+    border-top: 1px solid #444; margin-top: 8px; padding-top: 12px;
+    font-size: 1.1rem; font-weight: 700; color: var(--green);
+  }
+
+  .btn {
+    padding: 12px 24px; border: none; border-radius: 6px; font-size: 0.95rem;
+    cursor: pointer; font-weight: 600; transition: 0.2s;
+  }
+  .btn-primary { background: var(--highlight); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.2); }
+  .btn-secondary { background: var(--accent); color: var(--text); }
+  .btn-secondary:hover { filter: brightness(1.3); }
+  .btn-danger { background: #c62828; color: #fff; }
+  .btn-danger:hover { filter: brightness(1.2); }
+  .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+  .btn-group { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-logout {
+    background: none; border: 1px solid #444; color: var(--text2);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    transition: 0.2s;
+  }
+  .btn-logout:hover { border-color: var(--highlight); color: var(--highlight); }
+
+  /* Orders table */
+  .orders-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+  }
+  .search-box {
+    background: var(--bg); border: 1px solid #333; color: var(--text);
+    padding: 8px 14px; border-radius: 6px; width: 250px; outline: none;
+  }
+  .search-box:focus { border-color: var(--highlight); }
+
+  .order-card {
+    background: var(--surface); border-radius: var(--radius); padding: 16px;
+    margin-bottom: 10px; display: flex; justify-content: space-between;
+    align-items: center; transition: 0.2s; cursor: pointer;
+  }
+  .order-card:hover { background: var(--surface2); }
+  .order-info { flex: 1; }
+  .order-info h3 { font-size: 1rem; margin-bottom: 4px; }
+  .order-info p { font-size: 0.85rem; color: var(--text2); }
+  .order-meta { text-align: right; }
+  .order-price { font-size: 1.1rem; font-weight: 700; color: var(--green); }
+  .order-date { font-size: 0.8rem; color: var(--text2); }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  }
+  .badge-pending { background: #ff910033; color: var(--orange); }
+  .badge-printing { background: #2196f333; color: #64b5f6; }
+  .badge-postprocess { background: #ce93d833; color: #ce93d8; }
+  .badge-ready { background: #00c85333; color: var(--green); }
+  .badge-delivered { background: #78909c33; color: #90a4ae; }
+  .badge-paid { background: #00c85355; color: var(--green); }
+
+  /* Stats */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface); border-radius: var(--radius); padding: 20px; text-align: center;
+  }
+  .stat-value { font-size: 1.8rem; font-weight: 700; }
+  .stat-label { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+
+  /* Settings grid */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000a; z-index: 100; justify-content: center; align-items: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius); padding: 24px;
+    max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;
+  }
+  .modal h2 { margin-bottom: 16px; color: var(--highlight); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .detail-item { padding: 8px; background: var(--bg); border-radius: 6px; }
+  .detail-item label { display: block; font-size: 0.75rem; color: var(--text2); }
+  .detail-item span { font-size: 0.95rem; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .empty-state p { font-size: 1.1rem; margin-bottom: 8px; }
+
+  /* Password change banner */
+  .pw-banner {
+    background: #ff910033; border: 1px solid var(--orange); border-radius: var(--radius);
+    padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+  }
+  .pw-banner p { color: var(--orange); font-size: 0.9rem; }
+
+  @media (max-width: 600px) {
+    .form-grid, .settings-grid, .detail-grid { grid-template-columns: 1fr; }
+    .order-card { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .order-meta { text-align: left; }
+    .tabs { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="appRoot" style="display:none">
+  <header>
+    <h1><span>3D</span> Print Shop</h1>
+    <div class="header-right">
+      <span class="user-info">
+        <span id="headerUserInfo"></span>
+        <span id="orderCount" style="margin-left:12px"></span>
+      </span>
+      <button class="btn-logout" id="logoutBtn">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Password change banner (admin with default password) -->
+  <div class="pw-banner" id="pwBanner" style="display:none">
+    <p>You're using the default admin password. Please change it.</p>
+    <button class="btn btn-sm btn-primary" onclick="showChangePassword()">Change Password</button>
+  </div>
+
+  <div class="tabs" id="tabBar"></div>
+
+  <!-- NEW ORDER (customer simplified / admin full) -->
+  <div class="panel" id="new-order"></div>
+
+  <!-- MY ORDERS (customer) / ALL ORDERS (admin) -->
+  <div class="panel" id="orders">
+    <div class="orders-header">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" class="search-box" id="searchOrders" placeholder="Search orders...">
+        <select id="filterStatus" style="background:var(--bg);border:1px solid #333;color:var(--text);padding:8px;border-radius:6px">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="printing">Printing</option>
+          <option value="postprocess">Post-Processing</option>
+          <option value="ready">Ready</option>
+          <option value="delivered">Delivered</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+
+  <!-- DASHBOARD (admin only) -->
+  <div class="panel" id="dashboard">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="card">
+      <h2>Revenue This Month</h2>
+      <div id="monthlyStats"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS (admin only) -->
+  <div class="panel" id="settings"></div>
+</div>
+
+<!-- ORDER DETAIL MODAL -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="pwModal">
+  <div class="modal">
+    <h2>Change Password</h2>
+    <div id="pwError" style="color:#ef5350;font-size:0.85rem;margin-bottom:12px;display:none"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Current Password</label>
+        <input type="password" id="pwCurrent">
+      </div>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" id="pwNew">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closePwModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="doChangePassword()">Change</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============= STATE =============
+let currentUser = null;
+let isAdmin = false;
+let allOrders = [];
+let appSettings = null;
+
+const DEFAULT_SETTINGS = {
+  currency: '$',
+  materialPrices: { PLA: 20, ABS: 22, PETG: 25, TPU: 30, Nylon: 40, Resin: 35 },
+  elecRate: 0.12, printerWatt: 200, printerCost: 300, printerLife: 5000,
+  markup: 50,
+  postProcessCost: { none: 0, supports: 2, sanding: 5, painting: 8, full: 12 }
+};
+
+// ============= INIT =============
+async function init() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) { window.location.href = '/login'; return; }
+    const data = await res.json();
+    currentUser = data.user;
+    isAdmin = currentUser.role === 'admin';
+
+    document.getElementById('headerUserInfo').innerHTML =
+      `<strong>${esc(currentUser.name)}</strong> (${currentUser.role})`;
+
+    if (data.passwordChange) {
+      document.getElementById('pwBanner').style.display = 'flex';
+    }
+
+    buildTabs();
+    buildNewOrderPanel();
+    if (isAdmin) {
+      appSettings = await (await fetch('/api/settings')).json();
+      buildSettingsPanel();
+    } else {
+      appSettings = { ...DEFAULT_SETTINGS };
+    }
+
+    await loadOrders();
+    document.getElementById('appRoot').style.display = 'block';
+
+    // Activate first tab
+    const firstTab = document.querySelector('.tab');
+    if (firstTab) firstTab.click();
+  } catch (err) {
+    window.location.href = '/login';
+  }
+}
+
+// ============= TABS =============
+function buildTabs() {
+  const tabBar = document.getElementById('tabBar');
+  if (isAdmin) {
+    tabBar.innerHTML = `
+      <button class="tab" data-tab="new-order">+ New Order</button>
+      <button class="tab" data-tab="orders">Orders</button>
+      <button class="tab" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    `;
+  } else {
+    tabBar.innerHTML = `
+      <button class="tab" data-tab="new-order">+ New Order</button>
+      <button class="tab" data-tab="orders">My Orders</button>
+    `;
+  }
+
+  tabBar.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabBar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab === 'orders') renderOrders();
+      if (tab.dataset.tab === 'dashboard') renderDashboard();
+      if (tab.dataset.tab === 'settings') populateSettings();
+    });
+  });
+}
+
+// ============= NEW ORDER PANEL =============
+function buildNewOrderPanel() {
+  const panel = document.getElementById('new-order');
+  if (isAdmin) {
+    // Full admin form
+    panel.innerHTML = `
+      <div class="card">
+        <h2>Customer</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Name *</label>
+            <input type="text" id="custName" placeholder="Customer name">
+          </div>
+          <div class="form-group">
+            <label>Contact (phone/telegram)</label>
+            <input type="text" id="custContact" placeholder="@telegram or phone">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Print Job</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Item Description *</label>
+            <input type="text" id="itemDesc" placeholder="What are you printing?">
+          </div>
+          <div class="form-group">
+            <label>3D File</label>
+            <input type="file" id="fileInput" accept=".stl,.obj,.3mf,.step,.stp,.gcode,.ply,.amf" style="display:none">
+            <div id="fileDrop" style="border:2px dashed #444;border-radius:6px;padding:10px 12px;cursor:pointer;font-size:0.9rem;color:var(--text2);display:flex;align-items:center;gap:8px;min-height:42px;transition:border-color 0.2s" onclick="document.getElementById('fileInput').click()">
+              <span id="fileLabel">Browse or drop .stl, .obj, .3mf ...</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Material *</label>
+            <select id="material">
+              <option value="PLA">PLA</option><option value="ABS">ABS</option>
+              <option value="PETG">PETG</option><option value="TPU">TPU</option>
+              <option value="Nylon">Nylon</option><option value="Resin">Resin</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Color</label><input type="text" id="color" placeholder="e.g. White"></div>
+          <div class="form-group">
+            <label>Infill %</label>
+            <select id="infill">
+              <option value="10">10% - Lightweight</option><option value="20" selected>20% - Standard</option>
+              <option value="50">50% - Strong</option><option value="80">80% - Very Strong</option>
+              <option value="100">100% - Solid</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Layer Height</label>
+            <select id="layerHeight">
+              <option value="0.1">0.10mm - Fine</option><option value="0.2" selected>0.20mm - Standard</option>
+              <option value="0.3">0.30mm - Draft</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Weight per piece (grams) *</label><input type="number" id="weight" placeholder="From slicer" min="0" step="0.1"></div>
+          <div class="form-group"><label>Print time per piece (hours) *</label><input type="number" id="printTime" placeholder="From slicer" min="0" step="0.1"></div>
+          <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1" min="1"></div>
+          <div class="form-group">
+            <label>Post-Processing</label>
+            <select id="postProcess">
+              <option value="none">None</option><option value="supports">Support Removal</option>
+              <option value="sanding">Sanding/Smoothing</option><option value="painting">Painting</option>
+              <option value="full">Full (sand + paint)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Due Date</label><input type="date" id="dueDate"></div>
+          <div class="form-group full"><label>Notes</label><textarea id="notes" placeholder="Special instructions, delivery details..."></textarea></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Cost Breakdown</h2>
+        <div class="cost-preview" id="costPreview">
+          <div class="cost-line"><span>Material</span><span id="costMaterial">--</span></div>
+          <div class="cost-line"><span>Electricity</span><span id="costElectricity">--</span></div>
+          <div class="cost-line"><span>Machine Wear</span><span id="costWear">--</span></div>
+          <div class="cost-line"><span>Post-Processing</span><span id="costPost">--</span></div>
+          <div class="cost-line"><span>Subtotal (cost)</span><span id="costSubtotal">--</span></div>
+          <div class="cost-line"><span>Markup (<span id="markupPct">50</span>%)</span><span id="costMarkup">--</span></div>
+          <div class="cost-line"><span>&times; Quantity (<span id="qtyDisplay">1</span>)</span></div>
+          <div class="cost-line total"><span>Total Price</span><span id="costTotal">--</span></div>
+        </div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="form-group">
+            <label>Price Override (leave empty to use calculated)</label>
+            <input type="number" id="priceOverride" placeholder="Manual price" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="saveOrder">Save Order</button>
+          <button class="btn btn-secondary" id="clearForm">Clear</button>
+        </div>
+      </div>
+    `;
+    setupAdminOrderForm();
+  } else {
+    // Simplified customer form
+    panel.innerHTML = `
+      <div class="card">
+        <h2>Place an Order</h2>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>What do you need printed? *</label>
+            <input type="text" id="itemDesc" placeholder="Describe the item...">
+          </div>
+          <div class="form-group full">
+            <label>3D File</label>
+            <input type="file" id="fileInput" accept=".stl,.obj,.3mf,.step,.stp,.gcode,.ply,.amf" style="display:none">
+            <div id="fileDrop" style="border:2px dashed #444;border-radius:6px;padding:10px 12px;cursor:pointer;font-size:0.9rem;color:var(--text2);display:flex;align-items:center;gap:8px;min-height:42px;transition:border-color 0.2s" onclick="document.getElementById('fileInput').click()">
+              <span id="fileLabel">Browse or drop .stl, .obj, .3mf ...</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Material</label>
+            <select id="material">
+              <option value="PLA">PLA</option><option value="ABS">ABS</option>
+              <option value="PETG">PETG</option><option value="TPU">TPU</option>
+              <option value="Nylon">Nylon</option><option value="Resin">Resin</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Color</label><input type="text" id="color" placeholder="e.g. White"></div>
+          <div class="form-group"><label>Quantity</label><input type="number" id="quantity" value="1" min="1"></div>
+          <div class="form-group full"><label>Notes</label><textarea id="notes" placeholder="Special instructions, size preferences, delivery details..."></textarea></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="saveOrder">Submit Order</button>
+          <button class="btn btn-secondary" id="clearForm">Clear</button>
+        </div>
+      </div>
+    `;
+    setupCustomerOrderForm();
+  }
+  setupFileInput();
+}
+
+// ============= FILE INPUT =============
+let selectedFile = null;
+
+function setupFileInput() {
+  const fileInput = document.getElementById('fileInput');
+  const fileDrop = document.getElementById('fileDrop');
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) setFile(e.target.files[0]);
+  });
+  fileDrop.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileDrop.style.borderColor = 'var(--highlight)';
+  });
+  fileDrop.addEventListener('dragleave', () => {
+    fileDrop.style.borderColor = '#444';
+  });
+  fileDrop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileDrop.style.borderColor = '#444';
+    if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+  });
+}
+
+function setFile(file) {
+  selectedFile = file;
+  const fileLabel = document.getElementById('fileLabel');
+  const size = file.size < 1024*1024
+    ? (file.size / 1024).toFixed(1) + ' KB'
+    : (file.size / (1024*1024)).toFixed(1) + ' MB';
+  fileLabel.innerHTML = `<span style="color:var(--text)">${esc(file.name)}</span> <span style="font-size:0.8rem">(${size})</span> <span onclick="event.stopPropagation();clearFile()" style="color:var(--highlight);margin-left:auto;font-size:0.85rem;cursor:pointer">&#10005;</span>`;
+}
+
+function clearFile() {
+  selectedFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileLabel').textContent = 'Browse or drop .stl, .obj, .3mf ...';
+}
+
+// ============= ADMIN ORDER FORM =============
+function setupAdminOrderForm() {
+  // Live cost calculation
+  ['weight', 'printTime', 'quantity', 'material', 'postProcess'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', calcCosts);
+      el.addEventListener('change', calcCosts);
+    }
+  });
+  calcCosts();
+
+  document.getElementById('saveOrder').addEventListener('click', saveAdminOrder);
+  document.getElementById('clearForm').addEventListener('click', clearAdminForm);
+}
+
+function calcCosts() {
+  if (!appSettings) return { matCost:0, elecCost:0, wearCost:0, postCost:0, subtotal:0, markupAmt:0, total:0 };
+  const s = appSettings;
+  const weight = parseFloat(document.getElementById('weight')?.value) || 0;
+  const printTime = parseFloat(document.getElementById('printTime')?.value) || 0;
+  const qty = parseInt(document.getElementById('quantity')?.value) || 1;
+  const mat = document.getElementById('material')?.value || 'PLA';
+  const post = document.getElementById('postProcess')?.value || 'none';
+  const cur = s.currency;
+
+  const matCost = weight * (s.materialPrices[mat] || 20) / 1000;
+  const elecCost = printTime * (s.printerWatt / 1000) * s.elecRate;
+  const wearCost = printTime * (s.printerCost / s.printerLife);
+  const postCost = s.postProcessCost[post] || 0;
+  const subtotal = matCost + elecCost + wearCost + postCost;
+  const markupAmt = subtotal * (s.markup / 100);
+  const total = (subtotal + markupAmt) * qty;
+
+  const el = (id) => document.getElementById(id);
+  if (el('costMaterial')) el('costMaterial').textContent = `${cur}${matCost.toFixed(2)}`;
+  if (el('costElectricity')) el('costElectricity').textContent = `${cur}${elecCost.toFixed(2)}`;
+  if (el('costWear')) el('costWear').textContent = `${cur}${wearCost.toFixed(2)}`;
+  if (el('costPost')) el('costPost').textContent = `${cur}${postCost.toFixed(2)}`;
+  if (el('costSubtotal')) el('costSubtotal').textContent = `${cur}${subtotal.toFixed(2)}`;
+  if (el('costMarkup')) el('costMarkup').textContent = `${cur}${markupAmt.toFixed(2)}`;
+  if (el('markupPct')) el('markupPct').textContent = s.markup;
+  if (el('qtyDisplay')) el('qtyDisplay').textContent = qty;
+  if (el('costTotal')) el('costTotal').textContent = `${cur}${total.toFixed(2)}`;
+
+  return { matCost, elecCost, wearCost, postCost, subtotal, markupAmt, total };
+}
+
+async function saveAdminOrder() {
+  const name = document.getElementById('custName').value.trim();
+  const desc = document.getElementById('itemDesc').value.trim();
+  const weight = parseFloat(document.getElementById('weight').value);
+  const printTime = parseFloat(document.getElementById('printTime').value);
+
+  if (!name) return alert('Customer name is required');
+  if (!desc) return alert('Item description is required');
+  if (!weight || weight <= 0) return alert('Weight is required');
+  if (!printTime || printTime <= 0) return alert('Print time is required');
+
+  const costs = calcCosts();
+  const override = parseFloat(document.getElementById('priceOverride').value);
+  const finalPrice = override > 0 ? override : costs.total;
+
+  const formData = new FormData();
+  if (selectedFile) formData.append('file', selectedFile);
+  formData.append('customer_name', name);
+  formData.append('customer_contact', document.getElementById('custContact').value.trim());
+  formData.append('item_description', desc);
+  formData.append('material', document.getElementById('material').value);
+  formData.append('color', document.getElementById('color').value.trim());
+  formData.append('infill', document.getElementById('infill').value);
+  formData.append('layer_height', document.getElementById('layerHeight').value);
+  formData.append('weight', weight);
+  formData.append('print_time', printTime);
+  formData.append('quantity', document.getElementById('quantity').value || '1');
+  formData.append('post_process', document.getElementById('postProcess').value);
+  formData.append('due_date', document.getElementById('dueDate').value);
+  formData.append('notes', document.getElementById('notes').value.trim());
+  formData.append('cost_material', costs.matCost);
+  formData.append('cost_electricity', costs.elecCost);
+  formData.append('cost_wear', costs.wearCost);
+  formData.append('cost_post', costs.postCost);
+  formData.append('cost_subtotal', costs.subtotal);
+  formData.append('cost_markup', costs.markupAmt);
+  formData.append('cost_calculated', costs.total);
+  formData.append('cost_final', finalPrice);
+
+  const res = await fetch('/api/orders', { method: 'POST', body: formData });
+  const data = await res.json();
+  if (!res.ok) return alert(data.error);
+
+  clearAdminForm();
+  await loadOrders();
+  alert('Order saved!');
+}
+
+function clearAdminForm() {
+  ['custName','custContact','itemDesc','color','weight','printTime','notes','priceOverride','dueDate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  clearFile();
+  document.getElementById('quantity').value = '1';
+  document.getElementById('infill').value = '20';
+  document.getElementById('layerHeight').value = '0.2';
+  document.getElementById('material').value = 'PLA';
+  document.getElementById('postProcess').value = 'none';
+  calcCosts();
+}
+
+// ============= CUSTOMER ORDER FORM =============
+function setupCustomerOrderForm() {
+  document.getElementById('saveOrder').addEventListener('click', saveCustomerOrder);
+  document.getElementById('clearForm').addEventListener('click', () => {
+    ['itemDesc','color','notes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('quantity').value = '1';
+    document.getElementById('material').value = 'PLA';
+    clearFile();
+  });
+}
+
+async function saveCustomerOrder() {
+  const desc = document.getElementById('itemDesc').value.trim();
+  if (!desc) return alert('Please describe what you need printed');
+
+  const formData = new FormData();
+  if (selectedFile) formData.append('file', selectedFile);
+  formData.append('item_description', desc);
+  formData.append('material', document.getElementById('material').value);
+  formData.append('color', document.getElementById('color')?.value?.trim() || '');
+  formData.append('quantity', document.getElementById('quantity').value || '1');
+  formData.append('notes', document.getElementById('notes').value.trim());
+
+  const res = await fetch('/api/orders', { method: 'POST', body: formData });
+  const data = await res.json();
+  if (!res.ok) return alert(data.error);
+
+  document.getElementById('itemDesc').value = '';
+  if (document.getElementById('color')) document.getElementById('color').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('quantity').value = '1';
+  document.getElementById('material').value = 'PLA';
+  clearFile();
+
+  await loadOrders();
+  alert('Order submitted! We\'ll review it and get back to you.');
+
+  // Switch to orders tab
+  document.querySelectorAll('.tab')[1]?.click();
+}
+
+// ============= LOAD ORDERS =============
+async function loadOrders() {
+  const res = await fetch('/api/orders');
+  allOrders = await res.json();
+  updateOrderCount();
+}
+
+function updateOrderCount() {
+  const active = allOrders.filter(o => o.status !== 'paid' && o.status !== 'delivered').length;
+  document.getElementById('orderCount').textContent = active ? `${active} active` : '';
+}
+
+// ============= RENDER ORDERS =============
+function renderOrders() {
+  const list = document.getElementById('ordersList');
+  const search = document.getElementById('searchOrders').value.toLowerCase();
+  const statusFilter = document.getElementById('filterStatus').value;
+  const cur = appSettings.currency;
+
+  let filtered = allOrders.filter(o => {
+    const matchSearch = !search ||
+      o.customer_name.toLowerCase().includes(search) ||
+      o.item_description.toLowerCase().includes(search) ||
+      (o.file_original_name && o.file_original_name.toLowerCase().includes(search));
+    const matchStatus = statusFilter === 'all' || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><p>${allOrders.length ? 'No matching orders' : 'No orders yet'}</p>
+      <p style="font-size:0.85rem">${isAdmin ? 'Create your first order in the "New Order" tab' : 'Submit your first order in the "New Order" tab'}</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(o => `
+    <div class="order-card" onclick="showOrder(${o.id})">
+      <div class="order-info">
+        <h3>${isAdmin ? esc(o.customer_name) + ' &mdash; ' : ''}${esc(o.item_description)}</h3>
+        <p>${o.material}${o.weight ? ' | ' + o.weight + 'g' : ''} | ${o.quantity}x${o.file_original_name ? ' | ' + esc(o.file_original_name) : ''}</p>
+        <span class="badge badge-${o.status}">${statusLabel(o.status)}</span>
+      </div>
+      <div class="order-meta">
+        ${isAdmin ? `<div class="order-price">${cur}${(o.cost_final || 0).toFixed(2)}</div>` : ''}
+        <div class="order-date">${new Date(o.date).toLocaleDateString()}</div>
+        ${o.due_date ? `<div class="order-date">Due: ${o.due_date}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('searchOrders').addEventListener('input', renderOrders);
+document.getElementById('filterStatus').addEventListener('change', renderOrders);
+
+function statusLabel(s) {
+  return { pending:'Pending', printing:'Printing', postprocess:'Post-Process', ready:'Ready', delivered:'Delivered', paid:'Paid' }[s] || s;
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ============= ORDER DETAIL MODAL =============
+function showOrder(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o) return;
+  const cur = appSettings.currency;
+  const modal = document.getElementById('modalContent');
+
+  if (isAdmin) {
+    modal.innerHTML = `
+      <h2>Order #${o.id}: ${esc(o.item_description)}</h2>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Customer</label><span>${esc(o.customer_name)}</span></div>
+        <div class="detail-item"><label>Contact</label><span>${esc(o.customer_contact || '-')}</span></div>
+        <div class="detail-item"><label>File</label><span>${o.file_name
+          ? `<a href="/api/files/${encodeURIComponent(o.file_name)}" style="color:var(--highlight)">${esc(o.file_original_name)}</a>`
+          : '-'}</span></div>
+        <div class="detail-item"><label>Material</label><span>${o.material} (${esc(o.color || '-')})</span></div>
+        <div class="detail-item"><label>Infill</label><span>${o.infill}%</span></div>
+        <div class="detail-item"><label>Layer Height</label><span>${o.layer_height}mm</span></div>
+        <div class="detail-item"><label>Weight</label><span>${o.weight || '-'}g</span></div>
+        <div class="detail-item"><label>Print Time</label><span>${o.print_time || '-'}h</span></div>
+        <div class="detail-item"><label>Quantity</label><span>${o.quantity}</span></div>
+        <div class="detail-item"><label>Post-Processing</label><span>${o.post_process}</span></div>
+        <div class="detail-item"><label>Due Date</label><span>${o.due_date || '-'}</span></div>
+        <div class="detail-item"><label>Order Date</label><span>${new Date(o.date).toLocaleString()}</span></div>
+      </div>
+      ${o.notes ? `<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;font-size:0.9rem"><label style="display:block;font-size:0.75rem;color:var(--text2);margin-bottom:4px">NOTES</label>${esc(o.notes)}</div>` : ''}
+      <div class="cost-preview" style="margin-top:12px">
+        <div class="cost-line"><span>Material</span><span>${cur}${(o.cost_material||0).toFixed(2)}</span></div>
+        <div class="cost-line"><span>Electricity</span><span>${cur}${(o.cost_electricity||0).toFixed(2)}</span></div>
+        <div class="cost-line"><span>Machine Wear</span><span>${cur}${(o.cost_wear||0).toFixed(2)}</span></div>
+        <div class="cost-line"><span>Post-Processing</span><span>${cur}${(o.cost_post||0).toFixed(2)}</span></div>
+        <div class="cost-line"><span>Cost</span><span>${cur}${(o.cost_subtotal||0).toFixed(2)}</span></div>
+        <div class="cost-line"><span>Markup</span><span>${cur}${(o.cost_markup||0).toFixed(2)}</span></div>
+        <div class="cost-line total"><span>Price</span><span>${cur}${(o.cost_final||0).toFixed(2)}</span></div>
+        <div class="cost-line" style="color:var(--yellow)"><span>Profit</span><span>${cur}${((o.cost_final||0) - (o.cost_subtotal||0) * o.quantity).toFixed(2)}</span></div>
+      </div>
+      <div style="margin-top:16px">
+        <label style="font-size:0.8rem;color:var(--text2)">STATUS</label>
+        <select id="modalStatus" style="background:var(--bg);border:1px solid #333;color:var(--text);padding:8px;border-radius:6px;width:100%;margin-top:4px">
+          ${['pending','printing','postprocess','ready','delivered','paid'].map(s =>
+            `<option value="${s}" ${o.status === s ? 'selected' : ''}>${statusLabel(s)}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div style="margin-top:12px">
+        <label style="font-size:0.8rem;color:var(--text2)">UPDATE FINAL PRICE</label>
+        <input type="number" id="modalPrice" value="${o.cost_final||0}" min="0" step="0.01"
+          style="background:var(--bg);border:1px solid #333;color:var(--text);padding:8px;border-radius:6px;width:100%;margin-top:4px">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger btn-sm" onclick="deleteOrder(${o.id})">Delete</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal()">Close</button>
+        <button class="btn btn-primary btn-sm" onclick="updateOrder(${o.id})">Save Changes</button>
+      </div>
+    `;
+  } else {
+    // Customer view — no costs, just status
+    modal.innerHTML = `
+      <h2>${esc(o.item_description)}</h2>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Material</label><span>${o.material} (${esc(o.color || '-')})</span></div>
+        <div class="detail-item"><label>Quantity</label><span>${o.quantity}</span></div>
+        <div class="detail-item"><label>File</label><span>${esc(o.file_original_name || '-')}</span></div>
+        <div class="detail-item"><label>Order Date</label><span>${new Date(o.date).toLocaleString()}</span></div>
+        <div class="detail-item"><label>Status</label><span class="badge badge-${o.status}">${statusLabel(o.status)}</span></div>
+        ${o.due_date ? `<div class="detail-item"><label>Due Date</label><span>${o.due_date}</span></div>` : ''}
+      </div>
+      ${o.notes ? `<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;font-size:0.9rem"><label style="display:block;font-size:0.75rem;color:var(--text2);margin-bottom:4px">YOUR NOTES</label>${esc(o.notes)}</div>` : ''}
+      ${o.cost_final > 0 ? `<div style="margin-top:12px;padding:14px;background:var(--surface2);border-radius:var(--radius);text-align:center">
+        <div style="font-size:0.8rem;color:var(--text2);margin-bottom:4px">PRICE</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--green)">${cur}${o.cost_final.toFixed(2)}</div>
+      </div>` : ''}
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal()">Close</button>
+      </div>
+    `;
+  }
+  document.getElementById('orderModal').classList.add('show');
+}
+
+async function updateOrder(id) {
+  const status = document.getElementById('modalStatus').value;
+  const cost_final = parseFloat(document.getElementById('modalPrice').value) || 0;
+
+  const res = await fetch(`/api/orders/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, cost_final })
+  });
+  if (!res.ok) { const d = await res.json(); return alert(d.error); }
+
+  await loadOrders();
+  renderOrders();
+  closeModal();
+}
+
+async function deleteOrder(id) {
+  if (!confirm('Delete this order?')) return;
+  const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+  if (!res.ok) { const d = await res.json(); return alert(d.error); }
+
+  await loadOrders();
+  renderOrders();
+  closeModal();
+}
+
+function closeModal() {
+  document.getElementById('orderModal').classList.remove('show');
+}
+document.getElementById('orderModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('orderModal')) closeModal();
+});
+
+// ============= DASHBOARD (admin) =============
+function renderDashboard() {
+  if (!isAdmin) return;
+  const cur = appSettings.currency;
+  const now = new Date();
+  const thisMonth = allOrders.filter(o => {
+    const d = new Date(o.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+
+  const totalRevenue = allOrders.filter(o => o.status === 'paid').reduce((s, o) => s + (o.cost_final||0), 0);
+  const totalCost = allOrders.filter(o => o.status === 'paid').reduce((s, o) => s + (o.cost_subtotal||0) * o.quantity, 0);
+  const monthRevenue = thisMonth.reduce((s, o) => s + (o.cost_final||0), 0);
+  const activeOrders = allOrders.filter(o => !['paid','delivered'].includes(o.status)).length;
+  const totalOrders = allOrders.length;
+  const avgPrice = totalOrders ? allOrders.reduce((s, o) => s + (o.cost_final||0), 0) / totalOrders : 0;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-value" style="color:var(--green)">${cur}${totalRevenue.toFixed(0)}</div><div class="stat-label">Total Revenue (Paid)</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--yellow)">${cur}${(totalRevenue - totalCost).toFixed(0)}</div><div class="stat-label">Total Profit</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--highlight)">${cur}${monthRevenue.toFixed(0)}</div><div class="stat-label">This Month</div></div>
+    <div class="stat-card"><div class="stat-value">${activeOrders}</div><div class="stat-label">Active Orders</div></div>
+    <div class="stat-card"><div class="stat-value">${totalOrders}</div><div class="stat-label">Total Orders</div></div>
+    <div class="stat-card"><div class="stat-value">${cur}${avgPrice.toFixed(0)}</div><div class="stat-label">Avg Order Price</div></div>
+  `;
+
+  const matCount = {};
+  allOrders.forEach(o => { matCount[o.material] = (matCount[o.material] || 0) + o.quantity; });
+  document.getElementById('monthlyStats').innerHTML = `
+    <div style="margin-top:12px">
+      <h3 style="font-size:0.9rem;color:var(--text2);margin-bottom:8px">Material Usage (by units)</h3>
+      ${Object.entries(matCount).sort((a,b) => b[1]-a[1]).map(([mat, cnt]) =>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.9rem"><span>${mat}</span><span>${cnt} units</span></div>`
+      ).join('') || '<p style="color:var(--text2)">No data yet</p>'}
+    </div>
+    <div style="margin-top:16px">
+      <h3 style="font-size:0.9rem;color:var(--text2);margin-bottom:8px">This Month's Orders (${thisMonth.length})</h3>
+      ${thisMonth.map(o =>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem;color:var(--text2)">
+          <span>${esc(o.customer_name)} &mdash; ${esc(o.item_description)}</span>
+          <span style="color:var(--green)">${cur}${(o.cost_final||0).toFixed(2)}</span>
+        </div>`
+      ).join('') || '<p style="color:var(--text2)">No orders this month</p>'}
+    </div>
+  `;
+}
+
+// ============= SETTINGS (admin) =============
+function buildSettingsPanel() {
+  document.getElementById('settings').innerHTML = `
+    <div class="card">
+      <h2>Pricing Settings</h2>
+      <p style="color:var(--text2);font-size:0.85rem;margin-bottom:16px">Configure your costs to get accurate price calculations.</p>
+      <div class="settings-grid">
+        <div class="form-group"><label>Currency Symbol</label><input type="text" id="setCurrency" maxlength="5"></div>
+        <div class="form-group"><label>PLA price per kg</label><input type="number" id="setPLA" step="0.01" min="0"></div>
+        <div class="form-group"><label>ABS price per kg</label><input type="number" id="setABS" step="0.01" min="0"></div>
+        <div class="form-group"><label>PETG price per kg</label><input type="number" id="setPETG" step="0.01" min="0"></div>
+        <div class="form-group"><label>TPU price per kg</label><input type="number" id="setTPU" step="0.01" min="0"></div>
+        <div class="form-group"><label>Nylon price per kg</label><input type="number" id="setNylon" step="0.01" min="0"></div>
+        <div class="form-group"><label>Resin price per liter</label><input type="number" id="setResin" step="0.01" min="0"></div>
+        <div class="form-group"><label>Electricity rate per kWh</label><input type="number" id="setElecRate" step="0.01" min="0"></div>
+        <div class="form-group"><label>Printer wattage (W)</label><input type="number" id="setPrinterWatt" step="1" min="0"></div>
+        <div class="form-group"><label>Printer cost (purchase price)</label><input type="number" id="setPrinterCost" step="1" min="0"></div>
+        <div class="form-group"><label>Printer lifetime (hours)</label><input type="number" id="setPrinterLife" step="100" min="0"></div>
+        <div class="form-group"><label>Default markup %</label><input type="number" id="setMarkup" step="1" min="0"></div>
+        <div class="form-group"><label>Post-process: Support removal</label><input type="number" id="setPostSupports" step="0.5" min="0"></div>
+        <div class="form-group"><label>Post-process: Sanding</label><input type="number" id="setPostSanding" step="0.5" min="0"></div>
+        <div class="form-group"><label>Post-process: Painting</label><input type="number" id="setPostPainting" step="0.5" min="0"></div>
+        <div class="form-group"><label>Post-process: Full</label><input type="number" id="setPostFull" step="0.5" min="0"></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Data</h2>
+      <div class="btn-group">
+        <button class="btn btn-secondary" id="exportData">Export All Data (JSON)</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('saveSettingsBtn').addEventListener('click', saveSettingsHandler);
+  document.getElementById('exportData').addEventListener('click', exportDataHandler);
+}
+
+function populateSettings() {
+  if (!isAdmin || !appSettings) return;
+  const s = appSettings;
+  document.getElementById('setCurrency').value = s.currency;
+  document.getElementById('setPLA').value = s.materialPrices.PLA;
+  document.getElementById('setABS').value = s.materialPrices.ABS;
+  document.getElementById('setPETG').value = s.materialPrices.PETG;
+  document.getElementById('setTPU').value = s.materialPrices.TPU;
+  document.getElementById('setNylon').value = s.materialPrices.Nylon;
+  document.getElementById('setResin').value = s.materialPrices.Resin;
+  document.getElementById('setElecRate').value = s.elecRate;
+  document.getElementById('setPrinterWatt').value = s.printerWatt;
+  document.getElementById('setPrinterCost').value = s.printerCost;
+  document.getElementById('setPrinterLife').value = s.printerLife;
+  document.getElementById('setMarkup').value = s.markup;
+  document.getElementById('setPostSupports').value = s.postProcessCost.supports;
+  document.getElementById('setPostSanding').value = s.postProcessCost.sanding;
+  document.getElementById('setPostPainting').value = s.postProcessCost.painting;
+  document.getElementById('setPostFull').value = s.postProcessCost.full;
+}
+
+async function saveSettingsHandler() {
+  appSettings.currency = document.getElementById('setCurrency').value || '$';
+  appSettings.materialPrices.PLA = parseFloat(document.getElementById('setPLA').value) || 20;
+  appSettings.materialPrices.ABS = parseFloat(document.getElementById('setABS').value) || 22;
+  appSettings.materialPrices.PETG = parseFloat(document.getElementById('setPETG').value) || 25;
+  appSettings.materialPrices.TPU = parseFloat(document.getElementById('setTPU').value) || 30;
+  appSettings.materialPrices.Nylon = parseFloat(document.getElementById('setNylon').value) || 40;
+  appSettings.materialPrices.Resin = parseFloat(document.getElementById('setResin').value) || 35;
+  appSettings.elecRate = parseFloat(document.getElementById('setElecRate').value) || 0.12;
+  appSettings.printerWatt = parseFloat(document.getElementById('setPrinterWatt').value) || 200;
+  appSettings.printerCost = parseFloat(document.getElementById('setPrinterCost').value) || 300;
+  appSettings.printerLife = parseFloat(document.getElementById('setPrinterLife').value) || 5000;
+  appSettings.markup = parseFloat(document.getElementById('setMarkup').value) || 50;
+  appSettings.postProcessCost.supports = parseFloat(document.getElementById('setPostSupports').value) || 2;
+  appSettings.postProcessCost.sanding = parseFloat(document.getElementById('setPostSanding').value) || 5;
+  appSettings.postProcessCost.painting = parseFloat(document.getElementById('setPostPainting').value) || 8;
+  appSettings.postProcessCost.full = parseFloat(document.getElementById('setPostFull').value) || 12;
+
+  const res = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(appSettings)
+  });
+  if (!res.ok) { alert('Failed to save settings'); return; }
+  calcCosts();
+  alert('Settings saved!');
+}
+
+function exportDataHandler() {
+  const data = JSON.stringify({ settings: appSettings, orders: allOrders }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `3d-print-shop-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+// ============= LOGOUT =============
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login';
+});
+
+// ============= CHANGE PASSWORD =============
+function showChangePassword() {
+  document.getElementById('pwModal').classList.add('show');
+}
+function closePwModal() {
+  document.getElementById('pwModal').classList.remove('show');
+  document.getElementById('pwError').style.display = 'none';
+  document.getElementById('pwCurrent').value = '';
+  document.getElementById('pwNew').value = '';
+}
+document.getElementById('pwModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('pwModal')) closePwModal();
+});
+
+async function doChangePassword() {
+  const cur = document.getElementById('pwCurrent').value;
+  const nw = document.getElementById('pwNew').value;
+  if (!cur || !nw) { showPwError('Both fields are required'); return; }
+
+  const res = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword: cur, newPassword: nw })
+  });
+  const data = await res.json();
+  if (!res.ok) { showPwError(data.error); return; }
+
+  document.getElementById('pwBanner').style.display = 'none';
+  closePwModal();
+  alert('Password changed!');
+}
+
+function showPwError(msg) {
+  const el = document.getElementById('pwError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ============= START =============
+init();
+</script>
+</body>
+</html>

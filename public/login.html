@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Print Shop - Login</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --accent: #0f3460;
+    --highlight: #e94560;
+    --text: #eee;
+    --text2: #aaa;
+    --green: #00c853;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .auth-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+  }
+  .auth-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .auth-header h1 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+  .auth-header h1 span { color: var(--highlight); }
+  .auth-header p { color: var(--text2); font-size: 0.9rem; }
+  .auth-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+  }
+  .auth-tabs {
+    display: flex;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #333;
+  }
+  .auth-tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+  }
+  .auth-tab:hover { color: var(--text); }
+  .auth-tab.active {
+    color: var(--highlight);
+    border-bottom-color: var(--highlight);
+  }
+  .auth-form { display: none; }
+  .auth-form.active { display: block; }
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .form-group input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid #333;
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus { border-color: var(--highlight); }
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 8px;
+  }
+  .btn-primary { background: var(--highlight); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.2); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error-msg {
+    background: #c6282833;
+    color: #ef5350;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+  .success-msg {
+    background: #00c85322;
+    color: var(--green);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .success-msg.show { display: block; }
+</style>
+</head>
+<body>
+<div class="auth-container">
+  <div class="auth-header">
+    <h1><span>3D</span> Print Shop</h1>
+    <p>Sign in or create an account to place orders</p>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-form="login">Sign In</button>
+      <button class="auth-tab" data-form="register">Register</button>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+    <div id="successMsg" class="success-msg"></div>
+
+    <!-- LOGIN FORM -->
+    <form class="auth-form active" id="loginForm">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUser" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary">Sign In</button>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form class="auth-form" id="registerForm">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="regUser" required minlength="3" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPass" required minlength="4" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="regName" required>
+      </div>
+      <div class="form-group">
+        <label>Contact (phone / telegram)</label>
+        <input type="text" id="regContact" placeholder="Optional">
+      </div>
+      <button type="submit" class="btn btn-primary">Create Account</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const errorMsg = document.getElementById('errorMsg');
+const successMsg = document.getElementById('successMsg');
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.classList.add('show');
+  successMsg.classList.remove('show');
+}
+function showSuccess(msg) {
+  successMsg.textContent = msg;
+  successMsg.classList.add('show');
+  errorMsg.classList.remove('show');
+}
+function clearMessages() {
+  errorMsg.classList.remove('show');
+  successMsg.classList.remove('show');
+}
+
+// Check if already logged in
+fetch('/api/auth/me').then(r => {
+  if (r.ok) window.location.href = '/';
+});
+
+// Tabs
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.form + 'Form').classList.add('active');
+    clearMessages();
+  });
+});
+
+// Login
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearMessages();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('loginUser').value.trim(),
+        password: document.getElementById('loginPass').value,
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error); btn.disabled = false; return; }
+    window.location.href = '/';
+  } catch (err) {
+    showError('Connection error. Is the server running?');
+    btn.disabled = false;
+  }
+});
+
+// Register
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearMessages();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('regUser').value.trim(),
+        password: document.getElementById('regPass').value,
+        name: document.getElementById('regName').value.trim(),
+        contact: document.getElementById('regContact').value.trim(),
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error); btn.disabled = false; return; }
+    window.location.href = '/';
+  } catch (err) {
+    showError('Connection error. Is the server running?');
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
